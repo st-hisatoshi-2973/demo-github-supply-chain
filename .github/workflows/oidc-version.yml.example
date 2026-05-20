@@ -1,0 +1,104 @@
+# ==============================================================
+# OIDC 方式 - workflow サンプル
+# ==============================================================
+#
+# このファイルは .yml.example 形式です。
+# GitHub Actions では実行されません。
+#
+# 実際に動作確認する場合は:
+#   - 検証専用 AWS アカウントを用意する
+#   - terraform/ で IAM Role を作成する（terraform apply）
+#   - GitHub Variables に OIDC_ROLE_ARN を設定する
+#   - このファイルを .yml にリネームして private リポジトリで実行する
+#
+# ==============================================================
+
+name: "[DEMO] OIDC 方式"
+
+on:
+  workflow_dispatch:
+    # 手動実行のみ
+
+jobs:
+  verify-oidc-access:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write   # OIDC トークン発行に必要
+      contents: read    # コード読み取りのみ。write 権限なし
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "OIDC 方式の説明"
+        run: |
+          echo "=============================================="
+          echo "OIDC 方式の動作確認"
+          echo "=============================================="
+          echo ""
+          echo "確認する内容:"
+          echo "  1. GitHub Actions が OIDC JWT を発行する"
+          echo "  2. AWS STS が AssumeRoleWithWebIdentity を実行する"
+          echo "  3. 短期認証情報（1時間）で AWS にアクセスできる"
+          echo "  4. GitHub Secrets に AWS キーは不要"
+          echo "=============================================="
+
+      # ----------------------------------------------------------
+      # OIDC による AWS 認証
+      #
+      # role-to-assume: GitHub Variables の OIDC_ROLE_ARN を参照
+      #   → terraform output oidc_role_arn の値を設定すること
+      # ----------------------------------------------------------
+      - name: "Configure AWS credentials via OIDC"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+          # ↑ GitHub Variables（Secrets ではなく Variables）に ARN を設定する
+          # 例: arn:aws:iam::123456789012:role/demo-github-oidc-role
+          aws-region: ap-northeast-1
+          role-session-name: GitHubActions-OIDC-Verify
+
+      - name: "AWS 認証確認 (GetCallerIdentity)"
+        run: |
+          echo "=============================================="
+          echo "OIDC 認証後の GetCallerIdentity"
+          echo "=============================================="
+          aws sts get-caller-identity
+          echo ""
+          echo "[NOTE] CloudTrail に以下が記録されます:"
+          echo "       eventName: AssumeRoleWithWebIdentity"
+          echo "       認証の種類: 短期トークン（OIDC）"
+          echo "=============================================="
+
+      - name: "認証情報の種類を確認"
+        run: |
+          echo "=============================================="
+          echo "認証情報の種類確認"
+          echo "=============================================="
+          echo ""
+          # STS によって発行されたトークンであることを確認
+          # 長期キーではなく短期トークンであることがわかる
+          aws sts get-caller-identity --query 'Arn' --output text
+          echo ""
+          echo "上記 ARN が assumed-role で始まっていれば OIDC 認証成功"
+          echo "例: arn:aws:sts::123456789012:assumed-role/demo-github-oidc-role/..."
+          echo "=============================================="
+
+      - name: "検証結果サマリ"
+        run: |
+          echo "=============================================="
+          echo "OIDC 方式 - 検証結果"
+          echo "=============================================="
+          echo ""
+          echo "確認できたこと:"
+          echo "  ✓ GitHub Actions が OIDC JWT を発行した"
+          echo "  ✓ AssumeRoleWithWebIdentity が成功した"
+          echo "  ✓ 短期認証情報で AWS にアクセスできた"
+          echo "  ✓ GitHub Secrets に AWS キーは不要だった"
+          echo ""
+          echo "Secrets 方式との違い:"
+          echo "  - 認証情報を保存しない"
+          echo "  - 1時間で自動失効"
+          echo "  - Trust Policy でリポジトリ・ブランチ制限"
+          echo "=============================================="

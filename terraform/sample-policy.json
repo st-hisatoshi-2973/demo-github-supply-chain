@@ -1,0 +1,52 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "OIDCProvider",
+          "Effect": "Allow",
+          "Action": [
+              "iam:CreateOpenIDConnectProvider",
+              "iam:GetOpenIDConnectProvider",
+              "iam:DeleteOpenIDConnectProvider",
+              "iam:TagOpenIDConnectProvider"
+          ],
+          "Resource": "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com"
+      },
+      {
+          "Sid": "OIDCRole",
+          "Effect": "Allow",
+          "Action": [
+              "iam:CreateRole",
+              "iam:GetRole",
+              "iam:DeleteRole",
+              "iam:PutRolePolicy",
+              "iam:GetRolePolicy",
+              "iam:DeleteRolePolicy",
+              "iam:TagRole",
+              "iam:ListRolePolicies",
+              "iam:ListAttachedRolePolicies",
+              "iam:ListInstanceProfilesForRole"
+          ],
+          "Resource": "arn:aws:iam::*:role/demo-github-oidc-role"
+      },
+      {
+          "Sid": "SecretsVerifyUser",
+          "Effect": "Allow",
+          "Action": [
+              "iam:CreateUser",
+              "iam:GetUser",
+              "iam:DeleteUser",
+              "iam:TagUser",
+              "iam:CreateAccessKey",
+              "iam:DeleteAccessKey",
+              "iam:ListAccessKeys",
+              "iam:PutUserPolicy",
+              "iam:GetUserPolicy",
+              "iam:DeleteUserPolicy",
+              "iam:ListUserPolicies",
+              "iam:ListGroupsForUser"
+          ],
+          "Resource": "arn:aws:iam::*:user/demo-secrets-verify-user"
+      }
+  ]
+}

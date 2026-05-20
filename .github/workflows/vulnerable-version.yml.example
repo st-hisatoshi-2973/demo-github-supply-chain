@@ -1,0 +1,93 @@
+# ==============================================================
+# Secrets 方式 - workflow サンプル
+# ==============================================================
+#
+# このファイルは .yml.example 形式です。
+# GitHub Actions では実行されません。
+#
+# 実際に動作確認する場合は:
+#   - 検証専用 AWS アカウントを用意する
+#   - GitHub Secrets に AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_REGION を設定する
+#   - このファイルを .yml にリネームして private リポジトリで実行する
+#
+# ==============================================================
+
+name: "[DEMO] Secrets 方式"
+
+on:
+  workflow_dispatch:
+    # 手動実行のみ
+
+jobs:
+  verify-secrets-access:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      # write 権限は付与しない
+
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Secrets から認証情報が注入されることを確認"
+        run: |
+          echo "=============================================="
+          echo "GitHub Secrets からの認証情報注入確認"
+          echo "=============================================="
+          echo ""
+          if [ -n "$AWS_ACCESS_KEY_ID" ]; then
+            echo "AWS_ACCESS_KEY_ID : 注入されました（値は非表示）"
+          else
+            echo "AWS_ACCESS_KEY_ID : 未設定"
+          fi
+          if [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "AWS_SECRET_ACCESS_KEY : 注入されました（値は非表示）"
+          else
+            echo "AWS_SECRET_ACCESS_KEY : 未設定"
+          fi
+          echo "AWS_REGION : $AWS_REGION"
+          echo ""
+          echo "[NOTE] 値は表示しない。注入の有無のみ確認する。"
+          echo "=============================================="
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: "AWS CLI セットアップ"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: "AWS 認証確認 (GetCallerIdentity)"
+        run: |
+          echo "=============================================="
+          echo "AWS GetCallerIdentity"
+          echo "=============================================="
+          aws sts get-caller-identity
+          echo ""
+          echo "[NOTE] CloudTrail に GetCallerIdentity が記録されます"
+          echo "       認証の種類: 長期アクセスキー（IAM ユーザー）"
+          echo "=============================================="
+
+      - name: "検証結果サマリ"
+        run: |
+          echo "=============================================="
+          echo "Secrets 方式 - 検証結果"
+          echo "=============================================="
+          echo ""
+          echo "確認できたこと:"
+          echo "  ✓ GitHub Secrets から AWS キーが注入された"
+          echo "  ✓ 長期アクセスキーで AWS にアクセスできた"
+          echo "  ✓ CloudTrail に GetCallerIdentity が記録された"
+          echo ""
+          echo "リスクとして理解すべきこと:"
+          echo "  - このキーは workflow が改ざんされると漏洩しうる"
+          echo "  - 漏洩したキーはローテーションまで有効"
+          echo "  - OIDC 方式に移行することを推奨"
+          echo "=============================================="

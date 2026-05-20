@@ -1,0 +1,8 @@
+# 実際の設定値（org名など）が含まれるため除外
+terraform.tfvars
+
+# Terraform が生成するファイル
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup

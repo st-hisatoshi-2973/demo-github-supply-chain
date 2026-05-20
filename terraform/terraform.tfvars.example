@@ -1,0 +1,10 @@
+# terraform.tfvars.example
+#
+# このファイルをコピーして terraform.tfvars を作成し、値を設定してください。
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# terraform.tfvars は .gitignore に追加されています。
+# （実際の org 名・アカウント名が含まれるため）
+
+github_org  = "your-github-username-or-org"  # 例: "octocat"
+github_repo = "demo-github-supply-chain"

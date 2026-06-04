@@ -202,6 +202,28 @@ sequenceDiagram
 
 ---
 
+### OIDC ≠ 最小権限
+
+OIDC は「**長期認証情報を保存しない**」ための仕組みです。
+しかし、OIDC で取得した短期トークンは IAM Policy の範囲でリソースにアクセスできます。
+
+```
+OIDC で解決できること          OIDC だけでは解決できないこと
+─────────────────────         ──────────────────────────────
+✓ 長期キーの保存をなくす        △ 短期トークンの権限範囲
+✓ キー漏洩リスクの低減          △ IAM Policy が広すぎると短期トークンでアクセスできる範囲が広がる
+✓ 自動ローテーション            △ Trust Policy が緩いと意図しない workflow から Role を利用できる
+```
+
+そのため、以下の両方を最小権限で設計することが重要です。
+
+| 設定 | 役割 | 最小権限の例 |
+|---|---|---|
+| **Trust Policy** | 誰がこの Role を引き受けられるか | 特定リポジトリ・特定ブランチのみ許可 |
+| **IAM Policy** | 短期トークンで何ができるか | 必要な S3 バケットのみ、読み取り専用 |
+
+---
+
 ## workflow サンプル・Terraform
 
 実行可能ファイルとして `.github/workflows/` には置いていません。  
@@ -223,7 +245,9 @@ Terraform を実行する IAM ユーザー/ロール（`terraform-demo` プロ�
 ```bash
 cd terraform/
 cp terraform.tfvars.example terraform.tfvars
-# terraform.tfvars を編集して github_org を設定する
+# terraform.tfvars を編集して以下を設定する:
+#   github_org          : 自分の org/username
+#   demo_s3_bucket_name : グローバルで一意な S3 バケット名
 
 terraform init
 terraform apply

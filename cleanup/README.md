@@ -31,6 +31,7 @@ Step 4: 削除確認
 1. GitHub リポジトリ > Settings > Secrets and variables > Actions > Variables
 2. 以下の Variables を削除する:
    - `OIDC_ROLE_ARN`
+   - `DEMO_S3_BUCKET`
 
 ---
 
@@ -55,6 +56,9 @@ terraform destroy
 - `aws_iam_user.secrets_verify` — Secrets 方式検証用 IAM ユーザー
 - `aws_iam_user_policy.secrets_verify` — IAM ユーザーのインラインポリシー
 - `aws_iam_access_key.secrets_verify` — IAM ユーザーのアクセスキー
+- `aws_s3_bucket.demo_oidc` — デモ用 S3 バケット
+- `aws_s3_bucket_public_access_block.demo_oidc` — S3 パブリックアクセスブロック設定
+- `aws_s3_object.dummy_secret` — ダミーファイル（dummy-secret.txt）
 
 ---
 
@@ -77,6 +81,7 @@ terraform show
 | IAM Role が削除されたか | IAM > Roles > `demo-github-oidc-role` を検索 |
 | OIDC Provider が削除されたか | IAM > Identity providers > `token.actions.githubusercontent.com` |
 | IAM ユーザーが削除されたか | IAM > Users > 検証用ユーザー名を検索 |
+| S3 バケットが削除されたか | S3 > バケット名を検索 |
 
 ---
 
@@ -85,6 +90,8 @@ terraform show
 - [ ] GitHub Secrets から AWS_ACCESS_KEY_ID を削除した
 - [ ] GitHub Secrets から AWS_SECRET_ACCESS_KEY を削除した
 - [ ] GitHub Variables から OIDC_ROLE_ARN を削除した
+- [ ] GitHub Variables から DEMO_S3_BUCKET を削除した
 - [ ] `terraform destroy` が成功した
 - [ ] AWS コンソールで IAM Role が存在しないことを確認した
 - [ ] AWS コンソールで OIDC Provider が削除されたことを確認した（または共用なら残す）
+- [ ] AWS コンソールで S3 バケットが存在しないことを確認した

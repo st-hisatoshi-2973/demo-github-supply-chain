@@ -8,3 +8,6 @@
 
 github_org  = "your-github-username-or-org"  # 例: "octocat"
 github_repo = "demo-github-supply-chain"
+
+# S3 バケット名はグローバルで一意である必要がある
+demo_s3_bucket_name = "demo-oidc-bucket-yourname-20240101"

@@ -25,12 +25,17 @@ output "secrets_verify_secret_access_key" {
   # terraform output -raw secrets_verify_secret_access_key で取得する
 }
 
+output "demo_s3_bucket_name" {
+  description = "デモ用 S3 バケット名（GitHub Variables の DEMO_S3_BUCKET に設定する）"
+  value       = aws_s3_bucket.demo_oidc.bucket
+}
+
 output "next_steps" {
   description = "次のステップ"
   value       = <<-EOT
     次のステップ:
-    1. oidc_role_arn の値をコピーする
-    2. GitHub リポジトリの Settings > Variables > OIDC_ROLE_ARN に設定する
+    1. oidc_role_arn の値を GitHub Variables > OIDC_ROLE_ARN に設定する
+    2. demo_s3_bucket_name の値を GitHub Variables > DEMO_S3_BUCKET に設定する
     3. GitHub Actions > [DEMO] OIDC 方式 を手動実行する
     4. CloudTrail イベント履歴で AssumeRoleWithWebIdentity を確認する
   EOT

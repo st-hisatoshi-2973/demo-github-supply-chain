@@ -33,3 +33,10 @@ variable "secrets_iam_user_name" {
   type        = string
   default     = "demo-secrets-verify-user"
 }
+
+variable "demo_s3_bucket_name" {
+  description = "デモ用 S3 バケット名（グローバルで一意な名前を設定する）"
+  type        = string
+  # S3 バケット名はグローバルで一意である必要がある
+  # 例: "demo-oidc-bucket-yourname-20240101"
+}

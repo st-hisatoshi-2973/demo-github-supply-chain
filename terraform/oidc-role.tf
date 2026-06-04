@@ -99,17 +99,23 @@ data "aws_iam_policy_document" "github_oidc_permissions" {
     # GetCallerIdentity はリソース指定不可のため * を使用
   }
 
-  # 実際のユースケースで追加する権限の例（コメントアウト）:
-  #
-  # S3 読み取りのみ許可する場合:
-  # statement {
-  #   effect    = "Allow"
-  #   actions   = ["s3:GetObject", "s3:ListBucket"]
-  #   resources = [
-  #     "arn:aws:s3:::your-bucket-name",
-  #     "arn:aws:s3:::your-bucket-name/*",
-  #   ]
-  # }
+  # S3 読み取り（デモ用バケットのみ）
+  # 最小権限: ListBucket と GetObject のみ許可する
+  statement {
+    effect  = "Allow"
+    actions = ["s3:ListBucket"]
+    resources = [
+      "arn:aws:s3:::${var.demo_s3_bucket_name}",
+    ]
+  }
+
+  statement {
+    effect  = "Allow"
+    actions = ["s3:GetObject"]
+    resources = [
+      "arn:aws:s3:::${var.demo_s3_bucket_name}/*",
+    ]
+  }
 }
 
 resource "aws_iam_role_policy" "github_oidc" {

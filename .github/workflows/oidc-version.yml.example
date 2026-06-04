@@ -7,8 +7,8 @@
 #
 # 実際に動作確認する場合は:
 #   - 検証専用 AWS アカウントを用意する
-#   - terraform/ で IAM Role を作成する（terraform apply）
-#   - GitHub Variables に OIDC_ROLE_ARN を設定する
+#   - terraform/ で IAM Role と S3 バケットを作成する（terraform apply）
+#   - GitHub Variables に OIDC_ROLE_ARN と DEMO_S3_BUCKET を設定する
 #   - このファイルを .yml にリネームして private リポジトリで実行する
 #
 # ==============================================================
@@ -42,10 +42,11 @@ jobs:
           echo "  2. AWS STS が AssumeRoleWithWebIdentity を実行する"
           echo "  3. 短期認証情報（1時間）で AWS にアクセスできる"
           echo "  4. GitHub Secrets に AWS キーは不要"
+          echo "  5. 短期認証情報は IAM Policy の範囲で S3 にアクセスできる"
           echo "=============================================="
 
       # ----------------------------------------------------------
-      # OIDC による AWS 認証
+      # Step 1: OIDC による AWS 認証
       #
       # role-to-assume: GitHub Variables の OIDC_ROLE_ARN を参照
       #   → terraform output oidc_role_arn の値を設定すること
@@ -59,30 +60,64 @@ jobs:
           aws-region: ap-northeast-1
           role-session-name: GitHubActions-OIDC-Verify
 
-      - name: "AWS 認証確認 (GetCallerIdentity)"
+      - name: "[Step 1] AWS 認証確認 (GetCallerIdentity)"
         run: |
           echo "=============================================="
-          echo "OIDC 認証後の GetCallerIdentity"
+          echo "[Step 1] OIDC 認証後の GetCallerIdentity"
           echo "=============================================="
           aws sts get-caller-identity
           echo ""
-          echo "[NOTE] CloudTrail に以下が記録されます:"
-          echo "       eventName: AssumeRoleWithWebIdentity"
-          echo "       認証の種類: 短期トークン（OIDC）"
+          CALLER_ARN=$(aws sts get-caller-identity --query 'Arn' --output text)
+          echo "ARN: ${CALLER_ARN}"
+          echo ""
+          echo "[NOTE] assumed-role で始まっていれば OIDC 認証成功"
+          echo "       例: arn:aws:sts::123456789012:assumed-role/demo-github-oidc-role/..."
+          echo "[NOTE] CloudTrail に AssumeRoleWithWebIdentity が記録されます"
           echo "=============================================="
 
-      - name: "認証情報の種類を確認"
+      # ----------------------------------------------------------
+      # Step 2: S3 バケット一覧確認
+      # IAM Policy で s3:ListBucket が許可されていることを確認する
+      # ----------------------------------------------------------
+      - name: "[Step 2] S3 バケット一覧確認"
         run: |
           echo "=============================================="
-          echo "認証情報の種類確認"
+          echo "[Step 2] S3 バケット一覧確認"
           echo "=============================================="
           echo ""
-          # STS によって発行されたトークンであることを確認
-          # 長期キーではなく短期トークンであることがわかる
-          aws sts get-caller-identity --query 'Arn' --output text
+          echo "バケット: ${{ vars.DEMO_S3_BUCKET }}"
           echo ""
-          echo "上記 ARN が assumed-role で始まっていれば OIDC 認証成功"
-          echo "例: arn:aws:sts::123456789012:assumed-role/demo-github-oidc-role/..."
+          aws s3 ls s3://${{ vars.DEMO_S3_BUCKET }}
+          echo ""
+          echo "[NOTE] IAM Policy で s3:ListBucket が許可されているため一覧取得できる"
+          echo "=============================================="
+
+      # ----------------------------------------------------------
+      # Step 3: ファイル取得
+      # IAM Policy で s3:GetObject が許可されていることを確認する
+      # ----------------------------------------------------------
+      - name: "[Step 3] ファイル取得"
+        run: |
+          echo "=============================================="
+          echo "[Step 3] S3 からファイル取得"
+          echo "=============================================="
+          echo ""
+          aws s3 cp s3://${{ vars.DEMO_S3_BUCKET }}/dummy-secret.txt ./dummy-secret.txt
+          echo ""
+          echo "[NOTE] IAM Policy で s3:GetObject が許可されているためファイル取得できる"
+          echo "=============================================="
+
+      # ----------------------------------------------------------
+      # Step 4: 取得確認
+      # ----------------------------------------------------------
+      - name: "[Step 4] 取得ファイルの確認"
+        run: |
+          echo "=============================================="
+          echo "[Step 4] 取得したファイルの内容"
+          echo "=============================================="
+          echo ""
+          cat ./dummy-secret.txt
+          echo ""
           echo "=============================================="
 
       - name: "検証結果サマリ"
@@ -96,9 +131,12 @@ jobs:
           echo "  ✓ AssumeRoleWithWebIdentity が成功した"
           echo "  ✓ 短期認証情報で AWS にアクセスできた"
           echo "  ✓ GitHub Secrets に AWS キーは不要だった"
+          echo "  ✓ 短期認証情報で S3 バケット一覧を取得できた"
+          echo "  ✓ 短期認証情報で S3 ファイルを取得できた"
           echo ""
-          echo "Secrets 方式との違い:"
-          echo "  - 認証情報を保存しない"
-          echo "  - 1時間で自動失効"
-          echo "  - Trust Policy でリポジトリ・ブランチ制限"
+          echo "学習ポイント:"
+          echo "  - OIDC は長期認証情報を保存しない安全な認証方式"
+          echo "  - しかし OIDC で取得した短期トークンも IAM Policy の範囲で利用できる"
+          echo "  - Trust Policy（誰が引き受けられるか）と IAM Policy（何ができるか）"
+          echo "    の両方を最小権限で設計することが重要"
           echo "=============================================="
